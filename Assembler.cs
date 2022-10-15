@@ -2,6 +2,7 @@ namespace NetLMC;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 public static class Assembler
@@ -25,6 +26,61 @@ public static class Assembler
         }
 
         return res;
+    }
+
+    public static string Disassemble(int code)
+    {
+        string op = LookupOp(code, out var arg);
+
+        if (op == null) { return $"??? {code}"; }
+
+        op = op.PadRight(3, ' ');
+        if (arg.HasValue) { return $"{op} {arg.Value}"; }
+        return op;
+    }
+
+    public static string LookupOp(int code, out int? arg)
+    {
+        if (code == (int)InputOp.IN || code == (int)InputOp.OUT)
+        {
+            arg = null;
+            return ((InputOp)code).ToString();
+        }
+        else if (code == 0)
+        {
+            arg = null;
+            return InputOp.HLT.ToString();
+        }
+        else
+        {
+            arg = code % 100;
+            string v = Enum.GetName((InputOp)code - arg.Value);
+            if (v != null)
+            {
+                return v;
+            }
+
+            arg = code;
+            return null;
+        }
+    }
+
+    public static string LookupTag(int addr, AssemblerState state)
+    {
+        return state.tags.Where(kvp => kvp.Value == addr).Select(kvp => kvp.Key).FirstOrDefault();
+    }
+
+    public static string Disassemble(int code, int addr, AssemblerState debugState)
+    {
+        //string dasm = Disassemble(code);
+        string op = LookupOp(code, out var arg);
+        string tag1 = LookupTag(addr, debugState) ?? string.Empty;
+
+        if (!arg.HasValue)
+            return $"[{addr:00}] {tag1.PadRight(10, ' ')} {op}";
+
+        string tag2 = LookupTag(arg.Value, debugState) ?? string.Empty;
+        return $"[{addr:00}] {tag1.PadRight(10, ' ')} {op} {tag2} ({arg:00})";
     }
 
     private struct AssemblerLine

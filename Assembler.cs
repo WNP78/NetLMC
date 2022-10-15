@@ -2,11 +2,12 @@ namespace NetLMC;
 using System;
 using System.Collections.Generic;
 using System.IO;
-
-
+using System.Text.RegularExpressions;
 
 public static class Assembler
 {
+    private static Regex lineExpression = new Regex(@"^(\S*)\t\s*([A-z]{1,3})\s*([\S]*)");
+
     public static ushort[] Assemble(FileInfo file) => Assemble(file, out _);
 
     public static ushort[] Assemble(FileInfo file, out AssemblerState state)
@@ -36,34 +37,23 @@ public static class Assembler
         public AssemblerLine(int fileLine, string text)
         {
             this.fileLine = fileLine;
-            int index = text.IndexOf('\t');
-            if (index != -1)
+
+            var match = lineExpression.Match(text);
+            if (!match.Success)
             {
-                tag = text.Substring(0, index++);
-            }
-            else
-            {
-                index = 0;
-                tag = null;
+                throw new InvalidDataException($"Could not parse line instruction `{text}`");
             }
 
-            string op;
-            int space = text.IndexOf(' ', index);
-            if (space != -1)
+            if (!Enum.TryParse<InputOp>(match.Groups[2].Value, out this.opcode))
             {
-                arg = text.Substring(space + 1).Trim();
-
-                if (string.IsNullOrWhiteSpace(arg)) { arg = null; }
-
-                op = text.Substring(index, space);
-            }
-            else
-            {
-                arg = null;
-                op = text.Substring(index);
+                throw new InvalidDataException($"Unknown opcode {match.Groups[2].Value} on line {fileLine}");
             }
 
-            opcode = Enum.Parse<InputOp>(op);
+            this.tag = match.Groups[1].Value;
+            this.arg = match.Groups[3].Value;
+
+            if (string.IsNullOrWhiteSpace(this.tag)) { this.tag = null; }
+            if (string.IsNullOrWhiteSpace(this.arg)) { this.arg = null; }
         }
     }
 

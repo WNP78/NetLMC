@@ -21,6 +21,14 @@ switch (command)
 
         Validate(args[1]);
         return;
+    case "run":
+        if (args.Length != 2)
+        {
+            Console.WriteLine("run requires one argument");
+        }
+
+        Run(args[1]);
+        return;
     case "help":
         ShowHelp();
         return;
@@ -33,7 +41,8 @@ void ShowHelp()
 {
     Console.WriteLine(@"Commands list:
     help - shows this message
-    val code.txt - assembles, validates and gives memory stats for LMC assembly code.");
+    val code.txt - assembles, validates and gives memory stats for LMC assembly code.
+    run code.txt - assembles and runs code");
 }
 
 void Validate(string arg)
@@ -53,4 +62,21 @@ void Validate(string arg)
 
     Console.WriteLine("Assembled successfully.");
     Console.WriteLine($"{state.totalSize} boxes, {state.tags.Count} tags");
+}
+
+void Run(string arg)
+{
+    Interpreter.InterpreterState state;
+
+    try
+    {
+        state = Interpreter.LoadFromAssembler(Assembler.Assemble(new FileInfo(arg)));
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine($"Assembly failed: {e}");
+        return;
+    }
+
+    Interpreter.Run(ref state, new ConsoleInterface());
 }

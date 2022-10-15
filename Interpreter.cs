@@ -41,6 +41,11 @@ public static class Interpreter
 
             calc = v;
         }
+
+        public int GetMem(int addr)
+        {
+            return memory[addr % 100];
+        }
     }
 
     public unsafe static bool Step(ref InterpreterState state, IInterface iface)

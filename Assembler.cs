@@ -7,11 +7,13 @@ using System.IO;
 
 public static class Assembler
 {
-    public static ushort[] Assemble(FileInfo file)
+    public static ushort[] Assemble(FileInfo file) => Assemble(file, out _);
+
+    public static ushort[] Assemble(FileInfo file, out AssemblerState state)
     {
         if (!file.Exists) { throw new FileNotFoundException(file.FullName); }
 
-        var state = new AssemblerState();
+        state = new AssemblerState();
         List<AssemblerLine> lines = new List<AssemblerLine>(ParseFile(file, state));
 
         ushort[] res = new ushort[100];
@@ -65,7 +67,7 @@ public static class Assembler
         }
     }
 
-    private class AssemblerState
+    public class AssemblerState
     {
         public int totalSize;
 

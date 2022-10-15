@@ -158,8 +158,19 @@ void Debug(string arg)
                 continue;
             }
 
-            while (Interpreter.Step(ref state, iface) && state.pc != breakpoint) { }
-            break;
+            Console.WriteLine($"Stepping to {breakpoint}");
+            int exec = 0;
+            bool end = false;
+            while (true) 
+            {
+                exec++;
+                if (!Interpreter.Step(ref state, iface)) { end = true; break; }
+                if (state.pc == breakpoint) { break; }
+            }
+            Console.WriteLine($"Stepped {exec} instructions");
+
+            if (end) { break; }
+            continue;
         }
         else if (cmd[0] == "s")
         {
@@ -186,5 +197,7 @@ void Debug(string arg)
         }
     }
 
-    Console.WriteLine("Execution halted.");
+    Console.WriteLine($"Execution halted");
+    Console.WriteLine($"PC {state.pc:000}  CALC {state.calc:000}  {(state.nflag ? "NEGATIVE" : "")}");
+    Console.WriteLine($"  on: {Assembler.Disassemble(state.GetMem(state.pc-1), state.pc-1, debugInfo)}");
 }

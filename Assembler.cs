@@ -167,7 +167,7 @@ public static class Assembler
                 {
                     throw new InvalidDataException($"Duplicate tag {line.tag} on line {lineNo}");
                 }
-                
+
                 state.tags.Add(line.tag, state.totalSize);
             }
 
@@ -182,7 +182,8 @@ public static class Assembler
         foreach (AssemblerLine line in input)
         {
             int op = (int)line.opcode;
-            bool requiresArg = line.opcode switch {
+            bool requiresArg = line.opcode switch
+            {
                 InputOp.HLT => line.arg != null, // if an arg is supplied, we assume DAT
                 InputOp.IN => false,
                 InputOp.OUT => false,

@@ -25,7 +25,7 @@ public static class Interpreter
 
         public void SetCalc(int v)
         {
-            if (v >= 0) 
+            if (v >= 0)
             {
                 nflag = false;
                 v = v % 1000;
@@ -54,7 +54,7 @@ public static class Interpreter
 
         OpDigits op = (OpDigits)(instr / 100);
 
-        var arg = instr % 100; 
+        var arg = instr % 100;
 
         switch (op)
         {

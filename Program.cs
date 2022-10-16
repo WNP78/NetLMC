@@ -163,7 +163,7 @@ void Debug(string arg)
             Console.WriteLine($"Stepping to {breakpoint}");
             int exec = 0;
             bool end = false;
-            while (true) 
+            while (true)
             {
                 exec++;
                 if (!Interpreter.Step(ref state, iface)) { end = true; break; }
@@ -201,5 +201,5 @@ void Debug(string arg)
 
     Console.WriteLine($"Execution halted");
     Console.WriteLine($"PC {state.pc:000}  CALC {state.calc:000}  {(state.nflag ? "NEGATIVE" : "")}");
-    Console.WriteLine($"  on: {Assembler.Disassemble(state.GetMem(state.pc-1), state.pc-1, debugInfo)}");
+    Console.WriteLine($"  on: {Assembler.Disassemble(state.GetMem(state.pc - 1), state.pc - 1, debugInfo)}");
 }

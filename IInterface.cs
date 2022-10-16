@@ -2,9 +2,9 @@ namespace NetLMC;
 
 public interface IInterface
 {
-    public void Output(int s);
+    void Output(int s);
 
-    public int Input();
+    int Input();
 
-    public void DebugLog(string v);
-} 
+    void DebugLog(string v);
+}

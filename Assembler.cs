@@ -73,7 +73,7 @@ public static class Assembler
     public static string Disassemble(int code, int addr, AssemblerState debugState)
     {
         //string dasm = Disassemble(code);
-        string op = LookupOp(code, out var arg);
+        string op = LookupOp(code, out var arg) ?? "???";
         string tag1 = LookupTag(addr, debugState) ?? string.Empty;
 
         if (!arg.HasValue)
@@ -183,7 +183,7 @@ public static class Assembler
         {
             int op = (int)line.opcode;
             bool requiresArg = line.opcode switch {
-                InputOp.HLT => false,
+                InputOp.HLT => line.arg != null, // if an arg is supplied, we assume DAT
                 InputOp.IN => false,
                 InputOp.OUT => false,
                 _ => true,
@@ -200,6 +200,7 @@ public static class Assembler
                         if (val > 999) { throw new InvalidDataException($"DAT on line {line.fileLine} is out of range ({val} > 999)"); }
 
                         yield return val;
+                        continue;
                     }
                 }
                 else if (state.tags.TryGetValue(line.arg, out int tagLine))

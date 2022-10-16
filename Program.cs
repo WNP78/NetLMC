@@ -88,7 +88,9 @@ void Run(string arg)
         return;
     }
 
-    Interpreter.Run(ref state, new ConsoleInterface());
+    int steps = Interpreter.Run(ref state, new ConsoleInterface());
+
+    Console.WriteLine($"Finished in {steps} steps");
 }
 
 void Debug(string arg)

@@ -99,9 +99,11 @@ public static class Interpreter
         }
     }
 
-    public static void Run(ref InterpreterState state, IInterface iface)
+    public static int Run(ref InterpreterState state, IInterface iface)
     {
-        while (Step(ref state, iface)) { }
+        int steps = 0;
+        do { steps++; } while (Step(ref state, iface));
+        return steps;
     }
 
     public unsafe static InterpreterState LoadFromBin(FileInfo file)

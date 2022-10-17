@@ -1,5 +1,7 @@
 namespace NetLMC;
+using System;
 using System.IO;
+using System.Text;
 
 public static class Interpreter
 {
@@ -156,5 +158,105 @@ public static class Interpreter
         }
 
         return state;
+    }
+
+    public static string SaveToText(in InterpreterState state)
+    {
+        /* Size:
+            3 LMC
+            2 []
+            1 P/N
+            102 * 3 (values)
+            102 spaces
+
+            total 414
+        */
+        StringBuilder s = new("LMC[", 414);
+        s.Append(state.nflag ? 'N' : 'P');
+        s.Append(' ');
+        s.Append(state.pc.ToString("000"));
+        s.Append(' ');
+        s.Append(state.calc.ToString("000"));
+
+        for (int i = 0; i < 100; i++)
+        {
+            int v;
+            unsafe { v = state.memory[i]; }
+
+            s.Append(' ');
+            s.Append(v.ToString("000"));
+        }
+
+        s.Append(']');
+
+        return s.ToString();
+    }
+
+    public static void LoadFromText(StreamReader reader, out InterpreterState state)
+    {
+        state = default;
+
+        Span<char> buffer = stackalloc char[4];
+        ReadOnlySpan<char> ro = buffer;
+
+        if (reader.Read(buffer) < 4 || !MemoryExtensions.Equals(ro, "LMC[", StringComparison.Ordinal)) { throw new ArgumentException($"Invalid header: {ro}"); }
+
+        state.nflag = reader.Read() switch
+        {
+            'P' => false,
+            'N' => true,
+            _ => throw new ArgumentException($"Expected nflag"),
+        };
+
+        if (reader.Read() != ' ') throw new ArgumentException("Expected space after P/N");
+
+        char lastRead = '\0';
+
+        for (int i = -2; i < 100; i++)
+        {
+            int len = 0;
+            for (int j = 0; j < 4; j++)
+            {
+                int read = reader.Read();
+                if (read == -1) throw new ArgumentException("Unexpected end of string");
+                buffer[j] = lastRead = (char)read;
+
+                if (read == ' ' || read == ']')
+                {
+                    for (int k = j; j < 4; j++)
+                    {
+                        buffer[k] = ' ';
+                    }
+
+                    break;
+                }
+
+                len++;
+            }
+            
+            int v = int.Parse(ro[0..len]);
+
+            int max = i == -2 ? 99 : 999;
+
+            if (v > max || v < 0) { throw new ArgumentException($"Input number {v} out of bounds"); }
+
+            if (i == -2)
+            {
+                state.pc = v;
+            }
+            else if (i == -1)
+            {
+                state.calc = v;
+            }
+            else
+            {
+                unsafe 
+                {
+                    state.memory[i] = (ushort)v;
+                }
+            }
+        }
+
+        if (lastRead != ']') { throw new ArgumentException("Expected ]"); }
     }
 }

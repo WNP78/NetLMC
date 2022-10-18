@@ -36,6 +36,14 @@ switch (command)
     case "help":
         ShowHelp();
         return;
+    case "test":
+        if (args.Length != 3)
+        {
+            Console.WriteLine("test requires two arguments");
+        }
+
+        RunTest(args[1], args[2]);
+        return;
     default:
         Console.WriteLine($"Unknown command {command}");
         return;
@@ -87,6 +95,29 @@ void Run(string arg)
     int steps = Interpreter.Run(ref state, new ConsoleInterface());
 
     Console.WriteLine($"Finished in {steps} steps");
+}
+
+void RunTest(string test, string file)
+{
+    Interpreter.InterpreterState state;
+
+    try
+    {
+        state = Interpreter.LoadFromAssembler(Assembler.Assemble(new FileInfo(file)));
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine($"Assembly failed: {e}");
+        return;
+    }
+
+    if (!Test.Tests.TryGetValue(test, out var testFunc))
+    {
+        Console.WriteLine($"No such test {test}");
+        return;
+    }
+
+    testFunc(state);
 }
 
 void Debug(string arg)

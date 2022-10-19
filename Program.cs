@@ -62,10 +62,11 @@ void ShowHelp()
 void Validate(string arg)
 {
     Assembler.AssemblerState state;
+    ushort[] result;
 
     try
     {
-        Assembler.Assemble(new FileInfo(arg), out state);
+        result = Assembler.Assemble(new FileInfo(arg), out state);
     }
     catch (Exception e)
     {
@@ -74,8 +75,17 @@ void Validate(string arg)
         return;
     }
 
+    int nonZero = 0;
+    for (int i = 0; i < result.Length; i++)
+    {
+        if (result[i] != 0)
+        {
+            nonZero++;
+        }
+    }
+
     Console.WriteLine("Assembled successfully.");
-    Console.WriteLine($"{state.totalSize} boxes, {state.tags.Count} tags");
+    Console.WriteLine($"{state.totalSize} boxes, {state.tags.Count} tags, {nonZero} non-zero cells");
 }
 
 void Run(string arg)

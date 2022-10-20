@@ -1,5 +1,4 @@
 namespace NetLMC;
-using System.Reflection;
 
 public static class Tester
 {
@@ -16,7 +15,7 @@ public static class Tester
         public int value;
     }
 
-    [System.Serializable]
+    [Serializable]
     private class TesterException : System.Exception
     {
         public TesterException() { }

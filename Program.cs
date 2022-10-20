@@ -160,7 +160,7 @@ void Debug(string arg)
     {
         Console.WriteLine();
         Console.WriteLine($"PC {state.pc:000}  CALC {state.calc:000}  {(state.nflag ? "NEGATIVE" : "")}");
-        Console.WriteLine($"  next: {Assembler.Disassemble(state.GetMem(state.pc), state.pc, debugInfo)}");
+        Console.WriteLine($"  next: {Assembler.Disassemble(state[state.pc], state.pc, debugInfo)}");
         Console.Write(">");
         var command = Console.ReadLine();
         var cmd = command.Trim().Split(' ');
@@ -181,8 +181,8 @@ void Debug(string arg)
             var tag = cmd[1].Trim();
             if (debugInfo.tags.ContainsKey(tag))
             {
-                var addr = debugInfo.tags[tag];
-                Console.WriteLine($"{addr:000} ({tag}) = {state.GetMem(addr)}");
+                var addr = (uint)debugInfo.tags[tag];
+                Console.WriteLine($"{addr:000} ({tag}) = {state[addr]}");
                 continue;
             }
 
@@ -193,15 +193,14 @@ void Debug(string arg)
             foreach (var kvp in debugInfo.tags)
             {
                 var tag = kvp.Key;
-                var addr = kvp.Value;
-                Console.WriteLine($"{addr:000} ({tag}) = {state.GetMem(addr)}");
+                var addr = (uint)kvp.Value;
+                Console.WriteLine($"{addr:000} ({tag}) = {state[addr]}");
             }
         }
         else if (cmd[0] == "runto" && cmd.Length == 2)
         {
             var target = cmd[1].Trim();
-            int breakpoint;
-            if (!int.TryParse(target, out breakpoint) && !debugInfo.tags.TryGetValue(target, out breakpoint))
+            if (!int.TryParse(target, out int breakpoint) && !debugInfo.tags.TryGetValue(target, out breakpoint))
             {
                 Console.WriteLine($"Unknown breakpoint: {target}. Enter address or label.");
                 continue;
@@ -236,7 +235,7 @@ void Debug(string arg)
                 continue;
             }
 
-            state.pc = point;
+            state.pc = (uint)point;
             continue;
         }
         else if (cmd[0] == "dumpstr")
@@ -346,5 +345,5 @@ void Debug(string arg)
 
     Console.WriteLine($"Execution halted");
     Console.WriteLine($"PC {state.pc:000}  CALC {state.calc:000}  {(state.nflag ? "NEGATIVE" : "")}");
-    Console.WriteLine($"  on: {Assembler.Disassemble(state.GetMem(state.pc - 1), state.pc - 1, debugInfo)}");
+    Console.WriteLine($"  on: {Assembler.Disassemble(state[state.pc - 1], state.pc - 1, debugInfo)}");
 }

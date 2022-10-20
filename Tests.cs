@@ -8,7 +8,7 @@ public static class Test
         { "Polynomial", TestAllPolynomials },
     };
 
-    public static int EvalPolynomial(int a, int b, int c, int x) => Math.Clamp(a + b*x + c*x*x, 0, 999);
+    public static int EvalPolynomial(int a, int b, int c, int x) => Math.Clamp(a + b * x + c * x * x, 0, 999);
 
     public static IEnumerator<Tester.ExpectedAction> Polynomial(int a, int b, int c, int x)
     {
@@ -16,7 +16,7 @@ public static class Test
         yield return Tester.In(b);
         yield return Tester.In(c);
         yield return Tester.In(x);
-        yield return Tester.Out(EvalPolynomial(a,b,c,x));
+        yield return Tester.Out(EvalPolynomial(a, b, c, x));
     }
 
     public static void TestAllPolynomials(Interpreter.InterpreterState inState)
@@ -29,7 +29,7 @@ public static class Test
 
         var w = Stopwatch.StartNew();
 
-        Parallel.For(0, 1_000_000, (int i, ParallelLoopState parallelState) => 
+        Parallel.For(0, 1_000_000, (int i, ParallelLoopState parallelState) =>
         {
             long numPass = 0, numFail = 0, numCrash = 0;
             for (int j = 0; j < 1000; j++)
@@ -56,10 +56,10 @@ public static class Test
                         case Tester.Result.FAIL:
                             numFail++;
                             int failIdx = Interlocked.Increment(ref failIndex);
-                            if (failIdx < fails.Length) fails[failIdx] = (a,b,c,x);
+                            if (failIdx < fails.Length) fails[failIdx] = (a, b, c, x);
                             lock (ioLock)
                             {
-                                Console.WriteLine($"{a},{b},{c},{x}: {EvalPolynomial(a,b,c,x)}");
+                                Console.WriteLine($"{a},{b},{c},{x}: {EvalPolynomial(a, b, c, x)}");
                             }
                             break;
                         case Tester.Result.CRASH:

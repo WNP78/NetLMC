@@ -20,65 +20,74 @@ public static class Interpreter
 
     public unsafe struct InterpreterState
     {
+        public const int MemorySize = 100;
+
         public int calc;
-        public int pc;
+        public uint pc;
         public bool nflag;
-        public fixed ushort memory[100];
+        private fixed ushort memory[MemorySize];
 
-        public void SetCalc(int v)
+        public unsafe ref ushort this[uint i] => ref memory[i % MemorySize];
+
+        public int Calculator
         {
-            if (v >= 0)
+            get => calc;
+            set
             {
-                nflag = false;
-                v = v % 1000;
-            }
-            else
-            {
-                nflag = true;
-                do
+                if (value >= 0)
                 {
-                    v += 1000;
-                } while (v < 0);
+                    nflag = false;
+                    value %= 1000;
+                }
+                else
+                {
+                    nflag = true;
+                    do
+                    {
+                        value += 1000;
+                    } while (value < 0);
+                }
+
+                calc = value;
             }
-
-            calc = v;
-        }
-
-        public int GetMem(int addr)
-        {
-            return memory[addr % 100];
         }
     }
 
-    public unsafe static bool Step(ref InterpreterState state, IInterface iface)
+    public static bool IsIO(in InterpreterState state)
     {
-        ushort instr = state.memory[state.pc++];
+        ushort instr = state[state.pc];
+        return (instr == 901) || (instr == 902);
+    }
+
+    public static bool Step(ref InterpreterState state, IInterface iface)
+    {
+        ushort instr = state[state.pc++];
 
         OpDigits op = (OpDigits)(instr / 100);
 
-        var arg = instr % 100;
+        ushort arg = (ushort)(instr % 100);
 
         switch (op)
         {
             case OpDigits.HLT:
                 return false;
             case OpDigits.ADD:
-                state.SetCalc(state.calc + state.memory[arg]);
+                state.Calculator += state[arg];
                 return true;
             case OpDigits.SUB:
-                state.SetCalc(state.calc - state.memory[arg]);
+                state.Calculator -= state[arg];
                 return true;
             case OpDigits.STO:
-                state.memory[arg] = (ushort)state.calc;
+                state[arg] = (ushort)state.Calculator;
                 return true;
             case OpDigits.LDA:
-                state.SetCalc(state.memory[arg]);
+                state.Calculator = state[arg];
                 return true;
             case OpDigits.BR:
                 state.pc = arg;
                 return true;
             case OpDigits.BRZ:
-                if (state.calc == 0) state.pc = arg;
+                if (state.Calculator == 0) state.pc = arg;
                 return true;
             case OpDigits.BRP:
                 if (!state.nflag) state.pc = arg;
@@ -86,12 +95,12 @@ public static class Interpreter
             case OpDigits.IO:
                 if (arg == 1)
                 {
-                    state.SetCalc(iface.Input());
+                    state.Calculator = iface.Input();
                     return true;
                 }
                 else if (arg == 2)
                 {
-                    iface.Output(state.calc);
+                    iface.Output(state.Calculator);
                     return true;
                 }
                 goto default;
@@ -108,24 +117,27 @@ public static class Interpreter
         return steps;
     }
 
-    public unsafe static InterpreterState LoadFromBin(FileInfo file)
+    public static InterpreterState LoadFromBin(FileInfo file)
     {
         using var f = File.OpenRead(file.FullName);
         BinaryReader reader = new(f);
 
-        InterpreterState state = new();
-        state.calc = reader.ReadUInt16();
-        state.pc = reader.ReadUInt16();
-        state.nflag = reader.ReadBoolean();
-        for (int i = 0; i < 100; i++)
+        InterpreterState state = new()
         {
-            state.memory[i] = reader.ReadUInt16();
+            calc = reader.ReadUInt16(),
+            pc = reader.ReadUInt16(),
+            nflag = reader.ReadBoolean(),
+        };
+
+        for (uint i = 0; i < 100; i++)
+        {
+            state[i] = reader.ReadUInt16();
         }
 
         return state;
     }
 
-    public unsafe static void SaveToBin(FileInfo file, in InterpreterState state)
+    public static void SaveToBin(FileInfo file, in InterpreterState state)
     {
         using var f = File.OpenWrite(file.FullName);
         BinaryWriter writer = new(f);
@@ -134,9 +146,9 @@ public static class Interpreter
         writer.Write((ushort)state.pc);
         writer.Write(state.nflag);
 
-        for (int i = 0; i < 100; i++)
+        for (uint i = 0; i < 100; i++)
         {
-            writer.Write(state.memory[i]);
+            writer.Write(state[i]);
         }
     }
 
@@ -144,16 +156,18 @@ public static class Interpreter
     {
         if (result.Length > 100) { throw new System.ArgumentException("Assembled code is too long for interpreter!"); }
 
-        InterpreterState state = new();
-        state.pc = 0;
-        state.calc = 0;
-        state.nflag = false;
+        InterpreterState state = new()
+        {
+            pc = 0,
+            calc = 0,
+            nflag = false,
+        };
 
         unsafe
         {
-            fixed (ushort* src = result)
+            fixed (ushort* src = result, dst = &state[0])
             {
-                System.Buffer.MemoryCopy(src, state.memory, 100 * sizeof(ushort), result.Length * sizeof(ushort));
+                Buffer.MemoryCopy(src, dst, 100 * sizeof(ushort), result.Length * sizeof(ushort));
             }
         }
 
@@ -178,13 +192,10 @@ public static class Interpreter
         s.Append(' ');
         s.Append(state.calc.ToString("000"));
 
-        for (int i = 0; i < 100; i++)
+        for (uint i = 0; i < 100; i++)
         {
-            int v;
-            unsafe { v = state.memory[i]; }
-
             s.Append(' ');
-            s.Append(v.ToString("000"));
+            s.Append(state[i].ToString("000"));
         }
 
         s.Append(']');
@@ -233,27 +244,24 @@ public static class Interpreter
 
                 len++;
             }
-            
+
             int v = int.Parse(ro[0..len]);
 
             int max = i == -2 ? 99 : 999;
 
-            if (v > max || v < 0) { throw new ArgumentException($"Input number {v} out of bounds"); }
+            if (v > max || v < 0) { throw new ArgumentException($"Input number {v} out of range"); }
 
             if (i == -2)
             {
-                state.pc = v;
+                state.pc = (uint)v;
             }
-            else if (i == -1)
+            else if (i < 0)
             {
                 state.calc = v;
             }
             else
             {
-                unsafe 
-                {
-                    state.memory[i] = (ushort)v;
-                }
+                state[(uint)i] = (ushort)v;
             }
         }
 

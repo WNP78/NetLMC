@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 public static class Assembler
 {
-    private static Regex lineExpression = new Regex(@"^(\S*)\t\s*([A-z]{1,3})\s*([\S]*)");
+    private static readonly Regex lineExpression = new(@"^(\S*)\t\s*([A-z]{1,3})\s*([\S]*)");
 
     public static ushort[] Assemble(FileInfo file) => Assemble(file, out _);
 
@@ -16,7 +16,7 @@ public static class Assembler
         if (!file.Exists) { throw new FileNotFoundException(file.FullName); }
 
         state = new AssemblerState();
-        List<AssemblerLine> lines = new List<AssemblerLine>(ParseFile(file, state));
+        List<AssemblerLine> lines = new(ParseFile(file, state));
 
         ushort[] res = new ushort[100];
         int i = 0;
@@ -28,7 +28,7 @@ public static class Assembler
         return res;
     }
 
-    public static string Disassemble(int code)
+    public static string Disassemble(uint code)
     {
         string op = LookupOp(code, out var arg);
 
@@ -39,7 +39,7 @@ public static class Assembler
         return op;
     }
 
-    public static string LookupOp(int code, out int? arg)
+    public static string LookupOp(uint code, out uint? arg)
     {
         if (code == (int)InputOp.IN || code == (int)InputOp.OUT)
         {
@@ -54,7 +54,7 @@ public static class Assembler
         else
         {
             arg = code % 100;
-            string v = Enum.GetName((InputOp)code - arg.Value);
+            string v = Enum.GetName((InputOp)code - (int)arg.Value);
             if (v != null)
             {
                 return v;
@@ -65,22 +65,22 @@ public static class Assembler
         }
     }
 
-    public static string LookupTag(int addr, AssemblerState state)
+    public static string LookupTag(uint addr, AssemblerState state)
     {
         return state.tags.Where(kvp => kvp.Value == addr).Select(kvp => kvp.Key).FirstOrDefault();
     }
 
-    public static string Disassemble(int code, int addr, AssemblerState debugState)
+    public static string Disassemble(ushort code, uint addr, AssemblerState debugState)
     {
         //string dasm = Disassemble(code);
         string op = LookupOp(code, out var arg) ?? "???";
         string tag1 = LookupTag(addr, debugState) ?? string.Empty;
 
         if (!arg.HasValue)
-            return $"[{addr:00}] {tag1.PadRight(10, ' ')} {op}";
+            return $"[{addr:00}] {tag1,10} {op}";
 
         string tag2 = LookupTag(arg.Value, debugState) ?? string.Empty;
-        return $"[{addr:00}] {tag1.PadRight(10, ' ')} {op} {tag2} ({arg:00})";
+        return $"[{addr:00}] {tag1,10} {op} {tag2} ({arg:00})";
     }
 
     private struct AssemblerLine
@@ -138,7 +138,7 @@ public static class Assembler
             int comment = txt.IndexOf('#');
             if (comment != -1)
             {
-                toParse = toParse.Substring(0, comment);
+                toParse = toParse[..comment];
             }
 
             if (string.IsNullOrWhiteSpace(toParse)) { continue; }

@@ -127,10 +127,12 @@ void Run(string arg)
 void FileTest(string codeFilePath, string testFilePath)
 {
     Interpreter.InterpreterState state;
+    Assembler.AssemblerState asmState;
+    FileInfo codeFile = new(codeFilePath);
 
     try
     {
-        state = Interpreter.LoadFromAssembler(Assembler.Assemble(new FileInfo(codeFilePath)));
+        state = Interpreter.LoadFromAssembler(Assembler.Assemble(codeFile, out asmState));
     }
     catch (Exception e)
     {
@@ -144,6 +146,9 @@ void FileTest(string codeFilePath, string testFilePath)
         Console.WriteLine($"Test file not found");
         return;
     }
+
+    Console.WriteLine($"Testing {codeFile.Name} against {testFile.Name}");
+    Console.WriteLine($"{asmState.totalSize} boxes, {asmState.tags.Count} tags");
 
     Test.RunTxtTests(state, testFile);
 }

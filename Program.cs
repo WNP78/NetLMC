@@ -37,12 +37,26 @@ switch (command)
         ShowHelp();
         return;
     case "test":
+        if (args.Length == 2 && args[1].Equals("list", StringComparison.OrdinalIgnoreCase))
+        {
+            ListTests();
+            return;
+        }
+
         if (args.Length != 3)
         {
             Console.WriteLine("test requires two arguments");
         }
 
         RunTest(args[1], args[2]);
+        return;
+    case "testfile":
+        if (args.Length != 3)
+        {
+            Console.WriteLine("testcase requires two arguments");
+        }
+
+        FileTest(args[1], args[2]);
         return;
     default:
         Console.WriteLine($"Unknown command {command}");
@@ -56,7 +70,10 @@ void ShowHelp()
     val code.txt - assembles, validates and gives memory stats for LMC assembly code.
     run code.txt - assembles and runs code
     dbg - opens debugger on empty state
-    dbg code.txt - assembles, runs, and debugs code");
+    dbg code.txt - assembles, runs, and debugs code
+    test testname code.txt - runs builtin test testname on code.txt
+    test list - lists builtin tests
+    testfile code.txt testfile.txt - runs LMinC standard test file testfile.txt on code.txt");
 }
 
 void Validate(string arg)
@@ -105,6 +122,38 @@ void Run(string arg)
     int steps = Interpreter.Run(ref state, new ConsoleInterface());
 
     Console.WriteLine($"Finished in {steps} steps");
+}
+
+void FileTest(string codeFilePath, string testFilePath)
+{
+    Interpreter.InterpreterState state;
+
+    try
+    {
+        state = Interpreter.LoadFromAssembler(Assembler.Assemble(new FileInfo(codeFilePath)));
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine($"Assembly failed: {e}");
+        return;
+    }
+
+    FileInfo testFile = new(testFilePath);
+    if (!testFile.Exists)
+    {
+        Console.WriteLine($"Test file not found");
+        return;
+    }
+
+    Test.RunTxtTests(state, testFile);
+}
+
+void ListTests()
+{
+    foreach (var test in Test.Tests.Keys)
+    {
+        Console.WriteLine(test);
+    }
 }
 
 void RunTest(string test, string file)

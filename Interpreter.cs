@@ -51,6 +51,12 @@ public static class Interpreter
                 calc = value;
             }
         }
+
+        public void Reset()
+        {
+            this.pc = 0;
+            this.calc = 0;
+        }
     }
 
     public static bool IsIO(in InterpreterState state)
@@ -114,6 +120,13 @@ public static class Interpreter
     {
         int steps = 0;
         do { steps++; } while (Step(ref state, iface));
+        return steps;
+    }
+
+    public static int Run(ref InterpreterState state, IInterface iface, int maxSteps)
+    {
+        int steps = 0;
+        do { steps++; } while (steps <= maxSteps && Step(ref state, iface));
         return steps;
     }
 

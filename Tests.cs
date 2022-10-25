@@ -86,4 +86,132 @@ public static class Test
         Console.WriteLine($"Done in {w.Elapsed}");
         Console.WriteLine($"Pass: {totalPass}, Fail: {totalFail}, Crash: {totalCrash}");
     }
+
+    public static void RunTxtTests(Interpreter.InterpreterState inState, FileInfo testFile)
+    {
+        using var f = File.OpenRead(testFile.FullName);
+        var sr = new StreamReader(f);
+        string l;
+        bool allPassed = false;
+        while ((l = sr.ReadLine()) != null)
+        {
+            l = l.Trim();
+            if (!string.IsNullOrEmpty(l))
+            {
+                bool passed = RunTxtTest(l, ref inState, out string testName, out string msg);
+                Console.WriteLine($"{testName,-12}  {(passed ? "PASS" : "FAIL")}: {msg}");
+                allPassed |= passed;
+            }
+        }
+
+        if (allPassed) Console.WriteLine("All tests passed");
+        else Console.WriteLine("Some tests failed");
+    }
+
+    private static bool RunTxtTest(string test, ref Interpreter.InterpreterState state, out string testName, out string msg)
+    {
+        string[] flds = test.Trim().Split(';');
+
+        if (flds.Length != 4)
+        {
+            msg = $"Unable to read test";
+            testName = "N/A";
+            return false;
+        }
+
+        testName = flds[0];
+        int[] inputs, outputs;
+        int maxInstr;
+
+        try
+        {
+            inputs = flds[1].Trim().Split(',').Select(x => int.Parse(x)).ToArray();
+            outputs = flds[2].Trim().Split(',').Select(x => int.Parse(x)).ToArray();
+            maxInstr = int.Parse(flds[3]);
+        }
+        catch (Exception e)
+        {
+            msg = $"Unable to read test: {e}";
+            return false;
+        }
+
+        var iface = new TxtTestInterface(inputs, outputs);
+        
+        try
+        {
+            state.Reset();
+            int steps = Interpreter.Run(ref state, iface, maxInstr);
+            iface.Done();
+            msg = $"{steps} steps used.";
+            return true;
+        }
+        catch (TxtTestInterface.TestException exc)
+        {
+            msg = exc.Message;
+        }
+        catch (Exception e)
+        {
+            msg = $"Execution failed on instruction {state.pc}. Inner exception: {e}";
+        }
+
+        return false;
+    }
+
+    private class TxtTestInterface : IInterface
+    {
+        private readonly int[] inputs, outputs;
+        private int inIdx, outIdx;
+
+        public TxtTestInterface(int[] ins, int[] outs)
+        {
+            inputs = ins;
+            outputs = outs;
+        }
+
+        void IInterface.DebugLog(string v) => Console.WriteLine($"DEBUG: {v}");
+        int IInterface.Input() 
+        {
+            int idx = inIdx++;
+            if (idx < inputs.Length) return inputs[idx];
+            throw new InputException(true);
+        } 
+
+        void IInterface.Output(int s)
+        {
+            int idx = outIdx++;
+            if (idx < inputs.Length) AssertEqual(s, outputs[idx]);
+            else throw new OutputException(true);
+        } 
+
+        public void Done()
+        {
+            if (inIdx != inputs.Length) throw new InputException(false);
+            if (outIdx != outputs.Length) throw new OutputException(false);
+        }
+
+        private static void AssertEqual(int got, int expected)
+        {
+            if (got != expected) throw new WrongOutputException(got, expected);
+        }
+
+        public abstract class TestException : Exception
+        {
+            public TestException(string message) : base(message) { }
+        }
+
+        public class WrongOutputException : TestException
+        {
+            public WrongOutputException(int got, int expected) : base($"Got output {got} when expecting {expected}") { }
+        }
+
+        public class InputException : Exception
+        {
+            public InputException(bool overflow) : base($"Program requested too {(overflow ? "many" : "few")} inputs") { }
+        }
+
+        public class OutputException : Exception
+        {
+            public OutputException(bool overflow) : base($"Program gave too {(overflow ? "many" : "few")} outputs") { }
+        }
+    }
 }

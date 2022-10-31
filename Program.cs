@@ -79,16 +79,7 @@ switch (command)
 
 void ShowHelp()
 {
-    Console.WriteLine(@"Commands list:
-    help - shows this message
-    val code.txt - assembles, validates and gives memory stats for LMC assembly code.
-    run code.txt - assembles and runs code
-    dbg - opens debugger on empty state
-    dbg code.txt - assembles, runs, and debugs code
-    test testname code.txt - runs builtin test testname on code.txt
-    test list - lists builtin tests
-    testfile code.txt testfile.txt - runs LMinC standard test file testfile.txt on code.txt
-    opt in.txt [out.txt] - 'pack' LMC assembly file by not defining trailing zero DATs");
+    Console.WriteLine(Help.CommandHelp);
 }
 
 void Optimise(string arg1, string arg2)
@@ -227,6 +218,9 @@ void Debug(string arg)
             return;
         }
     }
+
+    Console.WriteLine(" == LMC DEBUGGER == ");
+    Console.WriteLine("Type `help` for help.");
 
     Dictionary<string, Interpreter.InterpreterState> savedStates = new();
 
@@ -410,6 +404,10 @@ void Debug(string arg)
         else if (cmd[0] == "quit" || cmd[0] == "exit")
         {
             return;
+        }
+        else if (cmd[0] == "help")
+        {
+            Console.WriteLine(Help.DebuggerHelp);
         }
         else
         {

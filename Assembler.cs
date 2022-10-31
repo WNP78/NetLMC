@@ -20,9 +20,9 @@ public static class Assembler
 
         ushort[] res = new ushort[100];
         int i = 0;
-        foreach (var compiled in AssembleLines(lines, state))
+        foreach (var line in lines)
         {
-            res[i++] = compiled;
+            res[i++] = AssembleLine(line, state);
         }
 
         return res;
@@ -83,7 +83,7 @@ public static class Assembler
         return $"[{addr:00}] {tag1,10} {op} {tag2} ({arg:00})";
     }
 
-    private struct AssemblerLine
+    internal struct AssemblerLine
     {
         public int fileLine;
         public string tag;
@@ -126,7 +126,7 @@ public static class Assembler
         }
     }
 
-    private static IEnumerable<AssemblerLine> ParseFile(FileInfo file, AssemblerState state)
+    internal static IEnumerable<AssemblerLine> ParseFile(FileInfo file, AssemblerState state)
     {
         int lineNo = 0;
         foreach (var txt in File.ReadLines(file.FullName))
@@ -177,45 +177,41 @@ public static class Assembler
         }
     }
 
-    private static IEnumerable<ushort> AssembleLines(IEnumerable<AssemblerLine> input, AssemblerState state)
+    internal static ushort AssembleLine(AssemblerLine line, AssemblerState state)
     {
-        foreach (AssemblerLine line in input)
+        int op = (int)line.opcode;
+        bool requiresArg = line.opcode switch
         {
-            int op = (int)line.opcode;
-            bool requiresArg = line.opcode switch
+            InputOp.HLT => line.arg != null, // if an arg is supplied, we assume DAT
+            InputOp.IN => false,
+            InputOp.OUT => false,
+            _ => true,
+        };
+
+        if (requiresArg)
+        {
+            if (line.arg == null) { throw new InvalidDataException($"Line {line.fileLine}, op {line.opcode} requires an argument but none is provided."); }
+
+            if (line.opcode == InputOp.DAT)
             {
-                InputOp.HLT => line.arg != null, // if an arg is supplied, we assume DAT
-                InputOp.IN => false,
-                InputOp.OUT => false,
-                _ => true,
-            };
-
-            if (requiresArg)
-            {
-                if (line.arg == null) { throw new InvalidDataException($"Line {line.fileLine}, op {line.opcode} requires an argument but none is provided."); }
-
-                if (line.opcode == InputOp.DAT)
+                if (ushort.TryParse(line.arg, out ushort val))
                 {
-                    if (ushort.TryParse(line.arg, out ushort val))
-                    {
-                        if (val > 999) { throw new InvalidDataException($"DAT on line {line.fileLine} is out of range ({val} > 999)"); }
+                    if (val > 999) { throw new InvalidDataException($"DAT on line {line.fileLine} is out of range ({val} > 999)"); }
 
-                        yield return val;
-                        continue;
-                    }
-                }
-                else if (state.tags.TryGetValue(line.arg, out int tagLine))
-                {
-                    op += tagLine;
-                }
-                else
-                {
-                    throw new InvalidDataException($"Tag {line.arg} used on line {line.fileLine} not defined.");
+                    return val;
                 }
             }
-
-            yield return (ushort)op;
+            else if (state.tags.TryGetValue(line.arg, out int tagLine))
+            {
+                op += tagLine;
+            }
+            else
+            {
+                throw new InvalidDataException($"Tag {line.arg} used on line {line.fileLine} not defined.");
+            }
         }
+
+        return (ushort)op;
     }
 
     public enum InputOp

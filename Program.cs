@@ -58,6 +58,20 @@ switch (command)
 
         FileTest(args[1], args[2]);
         return;
+    case "optimise":
+        if (args.Length == 2)
+        {
+            Optimise(args[1], null);
+        }
+        else if (args.Length == 3)
+        {
+            Optimise(args[2], args[3]);
+        }
+        else
+        { 
+            Console.WriteLine("Wrong number of arguments (1-2) for optimise.");
+        }
+        return;
     default:
         Console.WriteLine($"Unknown command {command}");
         return;
@@ -73,7 +87,13 @@ void ShowHelp()
     dbg code.txt - assembles, runs, and debugs code
     test testname code.txt - runs builtin test testname on code.txt
     test list - lists builtin tests
-    testfile code.txt testfile.txt - runs LMinC standard test file testfile.txt on code.txt");
+    testfile code.txt testfile.txt - runs LMinC standard test file testfile.txt on code.txt
+    opt in.txt [out.txt] - 'pack' LMC assembly file by not defining trailing zero DATs");
+}
+
+void Optimise(string arg1, string arg2)
+{
+    Optimiser.Optimise(new(arg1), string.IsNullOrWhiteSpace(arg2) ? null : new(arg2));
 }
 
 void Validate(string arg)

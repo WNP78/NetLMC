@@ -30,7 +30,7 @@ public static class Optimiser
         Console.WriteLine($"Packing {varsToPack.Count} variables");
 
         Dictionary<int, (int dat, string tag)> linesToAmend = new();
-        HashSet<int> linesToOmit = new();
+        Dictionary<int, string> linesToOmit = new();
         Assembler.AssemblerState state2 = new();
 
         foreach (var parsedLine in Assembler.ParseFile(infile, state2))
@@ -47,7 +47,7 @@ public static class Optimiser
             }
             else if (state2.totalSize >= lastNonZero + 1)
             {
-                linesToOmit.Add(parsedLine.fileLine);
+                linesToOmit.Add(parsedLine.fileLine, parsedLine.tag);
             }
         }
 
@@ -56,6 +56,8 @@ public static class Optimiser
         if (outfile.Exists) { outfile.Delete(); }
         using var outF = outfile.OpenWrite();
         var writer = new StreamWriter(outF);
+
+        writer.Write(string.Format(Help.OptimiserNotice, linesToOmit.Count));
 
         int lineNum = 0;
         foreach (var line in File.ReadLines(infile.FullName))
@@ -68,28 +70,24 @@ public static class Optimiser
                 if (!string.IsNullOrEmpty(replaceWith.tag))
                 {
                     // remove tag from commented bit so it's not duplicated in source (just for neatness)
-                    //Console.WriteLine($"Removing tag {replaceWith.tag} on line {lineNum}:");
-                    //Console.WriteLine(ln);
                     ln = ln.TrimStart()[replaceWith.tag.Length..];
-                    //Console.WriteLine(ln);
-                    //Console.WriteLine();
                 }
 
                 ln = $"{replaceWith.tag}\tDAT\t{replaceWith.dat:000} # {ln.TrimStart()}";
+                Console.WriteLine($"Patching instruction referring to `{Assembler.LookupTag((uint)(replaceWith.dat % 100), asmState) ?? "??"}` on line `{lineNum}`");
             }
-            else if (linesToOmit.Contains(lineNum))
+            else if (linesToOmit.TryGetValue(lineNum, out string tag))
             {
                 ln = $"# OMITTED #\t{ln.TrimStart()}";
+                Console.WriteLine($"Omitting definition of `{tag}` on line {lineNum}");
             }
 
-
-            Console.WriteLine(ln);
             writer.WriteLine(ln);
         }
 
         writer.Flush();
         outF.Flush();
 
-        Console.WriteLine($"Saved to {outfile.FullName}");
+        Console.WriteLine($"Optimised out {linesToOmit.Count} boxes, written to {outfile.FullName}");
     }
 }

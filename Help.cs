@@ -34,4 +34,17 @@ Debugger View:
     First line shows the value of the PC and the CALC
     Second line shows a dissasembly of the instruction at the PC (next instruction to be executed)
 ";
+
+    public const string OptimiserNotice = @"##################################
+# NOTICE - File optimised by automated tool
+#   This file has been optimised to not define uninitialised variables at the end of the program
+#   This has decreased the size of the compiled program by {0} boxes
+#   This allows us to use the whole memory of the LMC wihtout inflating our program data with empty fields that serve no purpose at runtime, only as labels at compile time
+#   Instructions that referred to those boxes have been rewritten using the DAT opcode to directly insert the correct machine code.
+#   The original instruction text is included in a comment directly after the optimised instruction for readability
+#   Variables that were optimised out are prefixed with `# OMITTED #`, but the text remains for readability
+#   Full code for the optimiser (and other utilities) are available on my GitHub: https://github.com/WNP78/NetLMC
+##################################
+
+";
 }
